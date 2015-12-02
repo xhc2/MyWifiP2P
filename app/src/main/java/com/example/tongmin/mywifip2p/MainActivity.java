@@ -39,17 +39,21 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     WifiP2pManager mManager;
     WifiP2pManager.Channel mChannel;
     WiFiDirectBroadcastReceiver mReceiver;
-    Button bt ;
+    Button bt , disconnect ;
     TextView tv;
     Button send;
     ListView listView ;
+    WifiP2pInfo info;
+
     ArrayAdapter<String> arrayAdapter ;
+    ClientThread client ;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.content_main);
         listView =(ListView)findViewById(R.id.listview);
         tv = (TextView)findViewById(R.id.tv);
+        disconnect = (Button)findViewById(R.id.dissconnect);
         listView.setOnItemClickListener(this);
         bt = (Button)findViewById(R.id.bt);
         send = (Button)findViewById(R.id.send);
@@ -57,10 +61,34 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         mChannel = mManager.initialize(this, getMainLooper(), null);
         mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel, this);
 
+        disconnect.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+//                client.close();
+                mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener()
+                {
+
+                    @Override
+                    public void onFailure(int reasonCode)
+                    {
+
+                    }
+
+                    @Override
+                    public void onSuccess()
+                    {
+                        Toast.makeText(MainActivity.this,"断开成功!",Toast.LENGTH_SHORT).show();
+                    }
+
+                });
+            }
+        });
+
         send.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                client =  new ClientThread(MainActivity.this,info.groupOwnerAddress.getHostAddress());
+                client.start();
             }
         });
         bt.setOnClickListener(new View.OnClickListener() {
@@ -98,7 +126,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
             @Override
             public void onSuccess() {
-                new ServerThread(MainActivity.this).start();
+
                 Log.e("xhc", "链接设备成功");
 
             }
@@ -119,6 +147,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     @Override
     public void onConnectionInfoAvailable(WifiP2pInfo info) {
+        if (info.groupFormed && info.isGroupOwner)
+        {
+            new ServerThread(MainActivity.this).start();
+            //开启服务线程
+//            new FileServerAsyncTask(getActivity(),
+//                    mContentView.findViewById(R.id.status_text)).execute();
+        }
+        this.info = info;
+//        host  = info.groupOwnerAddress.getHostAddress();
         tv.setText(info.toString());
     }
     public void requestConnectionInfo(
@@ -156,16 +193,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             String action = intent.getAction();
 
             if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action)) {
-                DebugFile.getInstance(context).writeLog("onReceive","WIFI_P2P_STATE_CHANGED_ACTION---");
                 // Check to see if Wi-Fi is enabled and notify appropriate activity=
             } else if (WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION.equals(action)) {
                 // Call WifiP2pManager.requestPeers() to get a list of current peers
-                DebugFile.getInstance(context).writeLog("onReceive", "WIFI_P2P_PEERS_CHANGED_ACTION+++");
                 if (mManager != null) {
                     mManager.requestPeers(mChannel, this);
                 }
             } else if (WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION.equals(action)) {
-                DebugFile.getInstance(context).writeLog("onReceive", "WIFI_P2P_CONNECTION_CHANGED_ACTION....");
                 // Respond to new connection or disconnections
                 NetworkInfo networkInfo = (NetworkInfo) intent
                         .getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
@@ -175,7 +209,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     // info to find group owner IP
                 }
             } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
-                DebugFile.getInstance(context).writeLog("onReceive", "WIFI_P2P_THIS_DEVICE_CHANGED_ACTION\\\\");
                 // Respond to this device's wifi state changing
             }
         }

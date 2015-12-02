@@ -3,7 +3,9 @@ package com.example.tongmin.mywifip2p;
 import android.app.Activity;
 import android.content.Context;
 import android.os.Environment;
+import android.os.Looper;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -30,8 +32,12 @@ public class ServerThread extends Thread {
 
     @Override
     public void run() {
+
         try{
-            serverSocket = new ServerSocket(8888);
+            Looper.prepare();
+            Toast.makeText(context,"服务开启监听",Toast.LENGTH_SHORT).show();
+            Looper.loop();
+            serverSocket = new ServerSocket(8988);
             Socket client = serverSocket.accept();
 
             /**
@@ -51,7 +57,9 @@ public class ServerThread extends Thread {
             recvFileAndSave(inputstream, "什么鬼");
             serverSocket.close();
         }catch (Exception e){
-
+            Looper.prepare();
+            Toast.makeText(context,"exception"+e.getMessage(),Toast.LENGTH_LONG).show();
+            Looper.loop();
         }
 
     }

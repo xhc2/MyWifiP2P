@@ -19,6 +19,12 @@
         android:text="搜索"
         />
     <Button
+        android:id="@+id/dissconnect"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="断开连接"
+        />
+    <Button
         android:id="@+id/send"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
