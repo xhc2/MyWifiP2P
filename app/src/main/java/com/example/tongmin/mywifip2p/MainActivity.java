@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
@@ -44,6 +45,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     Button send;
     ListView listView ;
     WifiP2pInfo info;
+    private final int CHOOSE_FILE_RESULT_CODE = 20 ;
 
     ArrayAdapter<String> arrayAdapter ;
     ClientThread client ;
@@ -87,8 +89,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         send.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                client =  new ClientThread(MainActivity.this,info.groupOwnerAddress.getHostAddress());
-                client.start();
+
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.setType("image/*");
+                startActivityForResult(intent, CHOOSE_FILE_RESULT_CODE);
+
             }
         });
         bt.setOnClickListener(new View.OnClickListener() {
@@ -111,6 +116,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         });
     }
 
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data)
+    {
+
+        Uri uri = data.getData();
+        client =  new ClientThread(MainActivity.this,info.groupOwnerAddress.getHostAddress(),uri);
+        client.start();
+    }
     @Override
     protected void onResume() {
         super.onResume();

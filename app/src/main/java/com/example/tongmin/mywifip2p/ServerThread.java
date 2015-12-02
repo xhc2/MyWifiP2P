@@ -2,15 +2,19 @@ package com.example.tongmin.mywifip2p;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Environment;
 import android.os.Looper;
 import android.util.Log;
+import android.view.ViewGroup;
 import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -40,21 +44,21 @@ public class ServerThread extends Thread {
             serverSocket = new ServerSocket(8988);
             Socket client = serverSocket.accept();
 
-            /**
-             * If this code is reached, a client has connected and transferred data
-             * Save the input stream from the client as a JPEG file
-             */
-            final File f = new File(Environment.getExternalStorageDirectory() + "/"
-                    + context.getPackageName() + "/wifip2pshared-" + System.currentTimeMillis()
-                    + ".jpg");
+            final File f = new File(
+                    Environment.getExternalStorageDirectory() + "/"
+                            + context.getPackageName() + "/wifip2pshared-"
+                            + System.currentTimeMillis() + ".jpg");
 
             File dirs = new File(f.getParent());
             if (!dirs.exists())
                 dirs.mkdirs();
-
             f.createNewFile();
+
             InputStream inputstream = client.getInputStream();
-            recvFileAndSave(inputstream, "什么鬼");
+            copyFile(inputstream, new FileOutputStream(f));
+            Looper.prepare();
+            Toast.makeText(context,"文件接收成功",Toast.LENGTH_LONG).show();
+            Looper.loop();
             serverSocket.close();
         }catch (Exception e){
             Looper.prepare();
@@ -63,38 +67,23 @@ public class ServerThread extends Thread {
         }
 
     }
-    public boolean recvFileAndSave(InputStream ins, String extName) {
-        try {
-            final File recvFile = new File(
-                    Environment.getExternalStorageDirectory()
-                            + "/wifi-direct/wifip2pshared-"
-                            + System.currentTimeMillis() + extName);
-
-            File dirs = new File(recvFile.getParent());
-            if (!dirs.exists())
-                dirs.mkdirs();
-            recvFile.createNewFile();
-
-            FileOutputStream fileOutS = new FileOutputStream(recvFile);
-
-            byte buf[] = new byte[1024];
-            int len;
-            while ((len = ins.read(buf)) != -1) {
-                fileOutS.write(buf, 0, len);
-                // 通知界面发送/接收文件进度。
-//                postSendRecvBytes(0, len);
+    public static boolean copyFile(InputStream inputStream, OutputStream out)
+    {
+        byte buf[] = new byte[1024];
+        int len;
+        try
+        {
+            while ((len = inputStream.read(buf)) != -1)
+            {
+                out.write(buf, 0, len);
 
             }
-            fileOutS.close();
-            String strFile = recvFile.getAbsolutePath();
-            if (strFile != null) {
-                //  Go, let's go and test a new cool & powerful method.
-//                Utility.openFile((Activity)context, recvFile);
-            }
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
+            out.close();
+            inputStream.close();
+        } catch (IOException e)
+        {
             return false;
         }
+        return true;
     }
 }

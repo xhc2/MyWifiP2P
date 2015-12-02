@@ -3,7 +3,9 @@ package com.example.tongmin.mywifip2p;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.net.Uri;
+import android.os.Looper;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -20,10 +22,12 @@ public class ClientThread extends Thread {
     String host;
     int port = 8988;
     int len;
+    Uri uri ;
 
-    public ClientThread(Context context,String host) {
+    public ClientThread(Context context,String host,Uri uri) {
         this.context = context;
         this.host = host;
+        this.uri = uri;
     }
 
 
@@ -35,12 +39,15 @@ public class ClientThread extends Thread {
 
             socket.bind(null);
             socket.connect((new InetSocketAddress(host, port)), 5000);
-            Log.e("xhc", "看看是否连接成功"+socket.isBound());
+
+            Looper.prepare();
+            Toast.makeText(context,"连接成功？"+socket.isBound(),Toast.LENGTH_LONG).show();
+            Looper.loop();
 
             OutputStream outputStream = socket.getOutputStream();
             ContentResolver cr = context.getContentResolver();
             InputStream inputStream = null;
-            inputStream = cr.openInputStream(Uri.parse("/mnt/sdcard/DCIM/Camera/1140.jpg"));
+            inputStream = cr.openInputStream(uri);
             while ((len = inputStream.read(buf)) != -1) {
                 outputStream.write(buf, 0, len);
             }
