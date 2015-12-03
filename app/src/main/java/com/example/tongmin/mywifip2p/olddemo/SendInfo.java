@@ -1,4 +1,4 @@
-package com.example.tongmin.mywifip2p;
+package com.example.tongmin.mywifip2p.olddemo;
 
 import android.util.Log;
 

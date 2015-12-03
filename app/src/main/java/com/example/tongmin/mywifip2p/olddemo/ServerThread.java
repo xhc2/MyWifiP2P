@@ -1,14 +1,11 @@
-package com.example.tongmin.mywifip2p;
+package com.example.tongmin.mywifip2p.olddemo;
 
-import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
-import android.net.Uri;
 import android.os.Environment;
 import android.os.Looper;
-import android.util.Log;
-import android.view.ViewGroup;
 import android.widget.Toast;
+
+import com.example.tongmin.mywifip2p.debugutil.DebugFile;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -27,7 +24,7 @@ public class ServerThread extends Thread {
      * Create a server socket and wait for client connections. This
      * call blocks until a connection is accepted from a client
      */
-    ServerSocket serverSocket ;
+
     Context context;
     public ServerThread(Context context){
         this.context = context;
@@ -36,19 +33,15 @@ public class ServerThread extends Thread {
 
     @Override
     public void run() {
-
+        ServerSocket serverSocket = null;
         try{
-            Looper.prepare();
-            Toast.makeText(context,"服务开启监听",Toast.LENGTH_SHORT).show();
-            Looper.loop();
-            serverSocket = new ServerSocket(8988);
+            DebugFile.getInstance(context).writeLog("服务开启监听","");
+            serverSocket  = new ServerSocket(Constant.port);
             Socket client = serverSocket.accept();
-
             final File f = new File(
                     Environment.getExternalStorageDirectory() + "/"
-                            + context.getPackageName() + "/wifip2pshared-"
+                            + "wifi-direct/"
                             + System.currentTimeMillis() + ".jpg");
-
             File dirs = new File(f.getParent());
             if (!dirs.exists())
                 dirs.mkdirs();
@@ -56,14 +49,21 @@ public class ServerThread extends Thread {
 
             InputStream inputstream = client.getInputStream();
             copyFile(inputstream, new FileOutputStream(f));
-            Looper.prepare();
-            Toast.makeText(context,"文件接收成功",Toast.LENGTH_LONG).show();
-            Looper.loop();
             serverSocket.close();
         }catch (Exception e){
             Looper.prepare();
             Toast.makeText(context,"exception"+e.getMessage(),Toast.LENGTH_LONG).show();
             Looper.loop();
+        }
+        finally {
+            if(serverSocket != null){
+                try {
+                    serverSocket.close();
+                }
+                catch (Exception e){ }
+
+            }
+
         }
 
     }

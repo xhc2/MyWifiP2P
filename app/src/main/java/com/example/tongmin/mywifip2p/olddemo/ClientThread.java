@@ -1,11 +1,10 @@
-package com.example.tongmin.mywifip2p;
+package com.example.tongmin.mywifip2p.olddemo;
 
 import android.content.ContentResolver;
 import android.content.Context;
 import android.net.Uri;
-import android.os.Looper;
-import android.util.Log;
-import android.widget.Toast;
+
+import com.example.tongmin.mywifip2p.debugutil.DebugFile;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -20,7 +19,6 @@ public class ClientThread extends Thread {
     Context context;
     Socket socket = new Socket();
     String host;
-    int port = 8988;
     int len;
     Uri uri ;
 
@@ -38,11 +36,9 @@ public class ClientThread extends Thread {
             byte buf[] = new byte[1024];
 
             socket.bind(null);
-            socket.connect((new InetSocketAddress(host, port)), 5000);
-
-            Looper.prepare();
-            Toast.makeText(context,"连接成功？"+socket.isBound(),Toast.LENGTH_LONG).show();
-            Looper.loop();
+            DebugFile.getInstance(context).writeLog("客户县城连接", "尝试连接 host" +host+" port "+Constant.port);
+            socket.connect((new InetSocketAddress(host, Constant.port)), 5000);
+            DebugFile.getInstance(context).writeLog("客户县城连接","连接成功"+socket.isBound());
 
             OutputStream outputStream = socket.getOutputStream();
             ContentResolver cr = context.getContentResolver();
@@ -55,7 +51,7 @@ public class ClientThread extends Thread {
             inputStream.close();
 
         } catch (Exception e) {
-
+            DebugFile.getInstance(context).writeException("client thread exception",e.getMessage());
             e.printStackTrace();
         }
     }

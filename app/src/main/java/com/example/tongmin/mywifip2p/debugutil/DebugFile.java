@@ -117,33 +117,33 @@ public class DebugFile {
     }
 
     /*往文件中写入调试信息*/
-//    public void writeLog(String where, String content) {
-//        if (!DEBUG) return;
-//        String detail = Constant.DEBUGLINE+"\r\n time: ";
-//        detail +=sdf.format( new Date() )+ " \r\n POSITION:";
-//        detail += where + " \r\n CONTENT:";
-//        detail += content + "\r\n";
-//        detail += Constant.DIVIDER+"\r\n";
-//        File file = new File(path + "/" + name);
-//        FileOutputStream fileOutputStream = null;
-//
-//        try {
-//            fileOutputStream = new FileOutputStream(file, true);
-//            byte[] buffer = detail.getBytes(FileFormat);
-//			/*是重这个数组中的第几个位置开始写*/
-//            fileOutputStream.write(buffer, 0, buffer.length);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        } finally {
-//            if (fileOutputStream != null) {
-//                try {
-//                    fileOutputStream.close();
-//                } catch (Exception e) {
-//                }
-//
-//            }
-//        }
-//    }
+    public void writeLog(String where, String content) {
+        if (!DEBUG) return;
+        String detail = Constant.DEBUGLINE+"\r\n time: ";
+        detail +=sdf.format( new Date() )+ " \r\n POSITION:";
+        detail += where + " \r\n CONTENT:";
+        detail += content + "\r\n";
+        detail += Constant.DIVIDER+"\r\n";
+        File file = new File(path + "/" + name);
+        FileOutputStream fileOutputStream = null;
+
+        try {
+            fileOutputStream = new FileOutputStream(file, true);
+            byte[] buffer = detail.getBytes(FileFormat);
+			/*是重这个数组中的第几个位置开始写*/
+            fileOutputStream.write(buffer, 0, buffer.length);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (fileOutputStream != null) {
+                try {
+                    fileOutputStream.close();
+                } catch (Exception e) {
+                }
+
+            }
+        }
+    }
 
     /*当用户捕捉的异常写在这个方法中*/
     public void writeException(String where, String content) {
