@@ -31,15 +31,17 @@ import java.util.Iterator;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemClickListener , WifiP2pManager.ConnectionInfoListener{
+
     List<WifiP2pDevice > listDevice = new ArrayList<>();
     WifiP2pManager mManager;
     WifiP2pManager.Channel mChannel;
     WiFiDirectBroadcastReceiver mReceiver;
+    WifiP2pInfo info;
+
     Button bt , disconnect ;
     TextView tv;
     Button send;
     ListView listView ;
-    WifiP2pInfo info;
     private final int CHOOSE_FILE_RESULT_CODE = 20 ;
 
     ArrayAdapter<String> arrayAdapter ;
@@ -54,6 +56,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         listView.setOnItemClickListener(this);
         bt = (Button)findViewById(R.id.bt);
         send = (Button)findViewById(R.id.send);
+
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), null);
         mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel, this);
@@ -124,6 +127,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         super.onResume();
         registerReceiver(mReceiver, getIntentFilter());
     }
+
+
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {

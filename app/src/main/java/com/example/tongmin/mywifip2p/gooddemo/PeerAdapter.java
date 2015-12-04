@@ -1,30 +1,44 @@
 package com.example.tongmin.mywifip2p.gooddemo;
 
 import android.content.Context;
+import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
+import android.net.wifi.p2p.WifiP2pManager;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.tongmin.mywifip2p.R;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class PeerAdapter extends BaseAdapter {
 
     List<WifiP2pDevice> list;
     ViewHolder holder;
-    Context context;
+    GoodActivity context;
     LayoutInflater inflater;
-
-    public PeerAdapter(Context context, List<WifiP2pDevice> list) {
-        this.list = list;
+    WifiP2pManager mManager;
+    WifiP2pManager.Channel mChannel;
+    public PeerAdapter(/*WifiP2pManager mManager,WifiP2pManager.Channel mChannel,*/ GoodActivity context) {
+        this.list = new ArrayList<WifiP2pDevice>();
         this.context = context;
-        inflater = LayoutInflater.from(context);
+        this.inflater = LayoutInflater.from(context);
+    }
+
+    public void setList(List<WifiP2pDevice> list) {
+        if (list != null && list.size() > 0) {
+            this.list = list;
+            notifyDataSetChanged();
+        }
+
     }
 
     @Override
@@ -42,6 +56,9 @@ public class PeerAdapter extends BaseAdapter {
         return position;
     }
 
+
+
+
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
@@ -50,16 +67,27 @@ public class PeerAdapter extends BaseAdapter {
             holder.bt = (Button) convertView.findViewById(R.id.bt_connect);
             holder.name = (TextView) convertView.findViewById(R.id.tvname);
             holder.status = (TextView) convertView.findViewById(R.id.status);
+            holder.send = (Button) convertView.findViewById(R.id.send);
             convertView.setTag(holder);
         } else {
             holder = (ViewHolder) convertView.getTag();
         }
         WifiP2pDevice wd = list.get(position);
-        String str ;
+
+        String str = null;
+        holder.name.setText(wd.deviceName);
+
+
         switch (wd.status) {
             case WifiP2pDevice.CONNECTED:
                 str = "已连接";
                 holder.bt.setText("断开连接");
+                holder.bt.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        context.disconnect();
+                    }
+                });
                 holder.bt.setClickable(true);
                 break;
             case WifiP2pDevice.INVITED:
@@ -73,20 +101,28 @@ public class PeerAdapter extends BaseAdapter {
                 str = "可利用";
                 holder.bt.setText("连接");
                 holder.bt.setClickable(true);
+                final WifiP2pConfig config = new WifiP2pConfig();
+                config.deviceAddress = wd.deviceAddress;
+                holder.bt.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        context.connect(config);
+                    }
+                });
                 break;
             case WifiP2pDevice.UNAVAILABLE:
                 str = "不可利用";
                 holder.bt.setClickable(false);
                 break;
         }
-
+        holder.status.setText(str);
 
         return convertView;
     }
 
     class ViewHolder {
         TextView name, status;
-        Button bt;
+        Button bt, send;
     }
 
 }
