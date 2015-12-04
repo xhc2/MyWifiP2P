@@ -33,10 +33,8 @@ public class ServerThread extends Thread {
         super.run();
         try{
             while(running){
-                DebugFile.getInstance(ctx).writeLog("监听before","监听before");
                 ServerSocket serverSocket = new ServerSocket(Constant.PORT);
                 Socket client = serverSocket.accept();
-                DebugFile.getInstance(ctx).writeLog("监听after","监听after");
                 getMessage(client.getInputStream());
                 serverSocket.close();
             }
