@@ -11,14 +11,12 @@ import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.ProgressBar;
@@ -26,11 +24,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.tongmin.mywifip2p.R;
-import com.example.tongmin.mywifip2p.olddemo.ServerThread;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 
 public class GoodActivity extends AppCompatActivity implements WifiP2pManager.ConnectionInfoListener ,AdapterView.OnItemClickListener{
@@ -39,13 +35,49 @@ public class GoodActivity extends AppCompatActivity implements WifiP2pManager.Co
     WifiP2pManager mManager;
     WifiP2pManager.Channel mChannel;
     WiFiDirectBroadcastReceiver mReceiver;
-    List<String> listInfo = new ArrayList<String>();
+//    List<String> listInfo = new ArrayList<>();
     TextView tvName, tvMessage;
     Button btSearch;
+    WifiP2pInfo info;
     ListView listView;
     ProgressBar pro;
     WifiP2pDevice localDevice;
     PeerAdapter adapter;
+    MyHandler handler;
+    ServerThread serverThread;
+    private static class MyHandler extends Handler{
+
+        private final WeakReference<GoodActivity> mActivity;
+        public MyHandler(GoodActivity activity){
+            mActivity = new WeakReference<>(activity);
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            switch (msg.what){
+                case 1:
+                    String str = (String)msg.obj;
+                    Toast.makeText(mActivity.get(),str,Toast.LENGTH_LONG).show();
+                    break;
+                case 2:
+                    Toast.makeText(mActivity.get(),"发送成功",Toast.LENGTH_SHORT).show();
+                    break;
+            }
+        }
+    }
+
+    public void sendInfo(WifiP2pDevice wd){
+
+        if(info.groupFormed && info.isGroupOwner){
+
+        }
+        else if(info.groupFormed){
+            new ClientThread(handler,info.groupOwnerAddress.getHostAddress(),"来自"+localDevice.deviceName+"的信息!").start();
+        }
+
+    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,6 +94,7 @@ public class GoodActivity extends AppCompatActivity implements WifiP2pManager.Co
     }
 
     private void findViewById() {
+        handler = new MyHandler(this);
         tvName = (TextView) findViewById(R.id.name);
         tvMessage = (TextView) findViewById(R.id.msg);
         btSearch = (Button) findViewById(R.id.bt_search);
@@ -72,7 +105,7 @@ public class GoodActivity extends AppCompatActivity implements WifiP2pManager.Co
 
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), null);
-        mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel, this);
+        mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel);
 
         btSearch.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -87,9 +120,16 @@ public class GoodActivity extends AppCompatActivity implements WifiP2pManager.Co
 
         discovery();
 
-        mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel, this);
+        mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel);
 
+        serverThread = new ServerThread(handler);
+        serverThread.start();
+    }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        serverThread.close();
     }
 
     @Override
@@ -142,15 +182,9 @@ public class GoodActivity extends AppCompatActivity implements WifiP2pManager.Co
 
     @Override
     public void onConnectionInfoAvailable(WifiP2pInfo info) {
-        listInfo.add(info.toString());
         //连接后的状态
-        if (info.groupFormed && info.isGroupOwner)
-        {
-
-        }
-        else if(info.groupFormed ){
-
-        }
+        this.info = info;
+        tvMessage.setText(info.toString());
 
     }
 
@@ -199,15 +233,15 @@ public class GoodActivity extends AppCompatActivity implements WifiP2pManager.Co
 
         private WifiP2pManager mManager;
         private WifiP2pManager.Channel mChannel;
-        private GoodActivity mActivity;
+//        private GoodActivity mActivity;
 
         //    private  WifiP2pManager.PeerListListener myPeerListListener;
-        public WiFiDirectBroadcastReceiver(WifiP2pManager manager, WifiP2pManager.Channel channel,
-                                           GoodActivity activity) {
+        public WiFiDirectBroadcastReceiver(WifiP2pManager manager, WifiP2pManager.Channel channel/*,
+                                           GoodActivity activity*/) {
             super();
             this.mManager = manager;
             this.mChannel = channel;
-            this.mActivity = activity;
+//            this.mActivity = activity;
         }
 
 
@@ -216,6 +250,7 @@ public class GoodActivity extends AppCompatActivity implements WifiP2pManager.Co
             String action = intent.getAction();
 
             if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action)) {
+
                 // Check to see if Wi-Fi is enabled and notify appropriate activity=
             } else if (WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION.equals(action)) {
                 // Call WifiP2pManager.requestPeers() to get a list of current peers
@@ -224,20 +259,19 @@ public class GoodActivity extends AppCompatActivity implements WifiP2pManager.Co
                 }
             } else if (WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION.equals(action)) {
                 // Respond to new connection or disconnections
-                NetworkInfo networkInfo = (NetworkInfo) intent
+                NetworkInfo networkInfo =  intent
                         .getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
                 if (networkInfo.isConnected()) {
                     requestConnectionInfo(GoodActivity.this);
                     // we are connected with the other device, request connection
                     // info to find group owner IP
                 }
-                else{
-                    Toast.makeText(GoodActivity.this, "这个应该是断开连接", Toast.LENGTH_SHORT).show();
-                }
             } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
-                localDevice = (WifiP2pDevice) intent.getParcelableExtra(
+                localDevice =  intent.getParcelableExtra(
                         WifiP2pManager.EXTRA_WIFI_P2P_DEVICE);
                 tvName.setText(localDevice.deviceName);
+
+
             }
         }
 

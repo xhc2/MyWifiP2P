@@ -72,7 +72,7 @@ public class PeerAdapter extends BaseAdapter {
         } else {
             holder = (ViewHolder) convertView.getTag();
         }
-        WifiP2pDevice wd = list.get(position);
+        final WifiP2pDevice wd = list.get(position);
 
         String str = null;
         holder.name.setText(wd.deviceName);
@@ -81,6 +81,7 @@ public class PeerAdapter extends BaseAdapter {
         switch (wd.status) {
             case WifiP2pDevice.CONNECTED:
                 str = "已连接";
+                holder.bt.setClickable(true);
                 holder.bt.setText("断开连接");
                 holder.bt.setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -88,7 +89,13 @@ public class PeerAdapter extends BaseAdapter {
                         context.disconnect();
                     }
                 });
-                holder.bt.setClickable(true);
+                holder.send.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        context.sendInfo(wd);
+                    }
+                });
+
                 break;
             case WifiP2pDevice.INVITED:
                 str = "被邀请";
