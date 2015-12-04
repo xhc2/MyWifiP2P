@@ -24,18 +24,21 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.tongmin.mywifip2p.R;
+import com.example.tongmin.mywifip2p.debugutil.DebugFile;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-public class GoodActivity extends AppCompatActivity implements WifiP2pManager.ConnectionInfoListener ,AdapterView.OnItemClickListener{
+public class GoodActivity extends AppCompatActivity implements WifiP2pManager.ConnectionInfoListener, AdapterView.OnItemClickListener {
 
     List<WifiP2pDevice> listDevice = new ArrayList<>();
     WifiP2pManager mManager;
     WifiP2pManager.Channel mChannel;
     WiFiDirectBroadcastReceiver mReceiver;
-//    List<String> listInfo = new ArrayList<>();
+    //    List<String> listInfo = new ArrayList<>();
     TextView tvName, tvMessage;
     Button btSearch;
     WifiP2pInfo info;
@@ -45,37 +48,48 @@ public class GoodActivity extends AppCompatActivity implements WifiP2pManager.Co
     PeerAdapter adapter;
     MyHandler handler;
     ServerThread serverThread;
-    private static class MyHandler extends Handler{
+    Map<String, String> deviceMap = new HashMap<>();
+
+    private static class MyHandler extends Handler {
 
         private final WeakReference<GoodActivity> mActivity;
-        public MyHandler(GoodActivity activity){
+        Map<String, String> ipNameMap;
+
+        public MyHandler(GoodActivity activity, Map<String, String> map) {
             mActivity = new WeakReference<>(activity);
+            ipNameMap = map;
         }
 
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
-            switch (msg.what){
+            switch (msg.what) {
                 case 1:
-                    String str = (String)msg.obj;
-                    Toast.makeText(mActivity.get(),str,Toast.LENGTH_LONG).show();
+                    String str = (String) msg.obj;
+                    Toast.makeText(mActivity.get(), str, Toast.LENGTH_LONG).show();
                     break;
                 case 2:
-                    Toast.makeText(mActivity.get(),"发送成功",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(mActivity.get(), "发送成功", Toast.LENGTH_SHORT).show();
+                    break;
+                case 3:
+                    String[] deviceInfo = (String[]) msg.obj;
+                    ipNameMap.put(deviceInfo[1], deviceInfo[0]);
+//                    DebugFile.getInstance(mActivity.get()).writeLog("接收到的ip数据","ip"+deviceInfo[0]+"name"+deviceInfo[1]);
+
                     break;
             }
         }
     }
 
-    public void sendInfo(WifiP2pDevice wd){
-
-        if(info.groupFormed && info.isGroupOwner){
-
+    public void sendInfo(WifiP2pDevice wd) {
+        String host = null;
+        if (info.groupFormed && info.isGroupOwner) {
+            host = deviceMap.get(wd.deviceName);
+            DebugFile.getInstance(GoodActivity.this).writeLog("发送给peer端","host"+host);
+        } else if (info.groupFormed) {
+            host = info.groupOwnerAddress.getHostAddress();
         }
-        else if(info.groupFormed){
-            new ClientThread(handler,info.groupOwnerAddress.getHostAddress(),"来自"+localDevice.deviceName+"的信息!").start();
-        }
-
+        new ClientThread(handler, host, "来自 " + localDevice.deviceName + " 的信息!").start();
     }
 
 
@@ -94,7 +108,7 @@ public class GoodActivity extends AppCompatActivity implements WifiP2pManager.Co
     }
 
     private void findViewById() {
-        handler = new MyHandler(this);
+        handler = new MyHandler(this, deviceMap);
         tvName = (TextView) findViewById(R.id.name);
         tvMessage = (TextView) findViewById(R.id.msg);
         btSearch = (Button) findViewById(R.id.bt_search);
@@ -115,14 +129,14 @@ public class GoodActivity extends AppCompatActivity implements WifiP2pManager.Co
         });
 
 
-        adapter = new PeerAdapter( this);
+        adapter = new PeerAdapter(this);
         listView.setAdapter(adapter);
 
         discovery();
 
         mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel);
 
-        serverThread = new ServerThread(handler);
+        serverThread = new ServerThread(handler,this);
         serverThread.start();
     }
 
@@ -138,7 +152,7 @@ public class GoodActivity extends AppCompatActivity implements WifiP2pManager.Co
         registerReceiver(mReceiver, getIntentFilter());
     }
 
-    public void disconnect(){
+    public void disconnect() {
 
         mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
 
@@ -146,6 +160,7 @@ public class GoodActivity extends AppCompatActivity implements WifiP2pManager.Co
             public void onFailure(int reasonCode) {
                 adapter.notifyDataSetChanged();
             }
+
             @Override
             public void onSuccess() {
                 adapter.notifyDataSetChanged();
@@ -153,8 +168,6 @@ public class GoodActivity extends AppCompatActivity implements WifiP2pManager.Co
             }
         });
     }
-
-
 
 
     private void discovery() {
@@ -185,6 +198,10 @@ public class GoodActivity extends AppCompatActivity implements WifiP2pManager.Co
         //连接后的状态
         this.info = info;
         tvMessage.setText(info.toString());
+        if (!info.isGroupOwner) {
+            //将自己的ip传给server端
+            new ClientThread(handler, info.groupOwnerAddress.getHostAddress(), "ip:" + Constant.getLocalIpAddress() + "name:" + localDevice.deviceName).start();
+        }
 
     }
 
@@ -202,7 +219,7 @@ public class GoodActivity extends AppCompatActivity implements WifiP2pManager.Co
         mManager.requestConnectionInfo(mChannel, listener);
     }
 
-    public void connect( WifiP2pConfig config){
+    public void connect(WifiP2pConfig config) {
         loading();
         mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
 
@@ -221,6 +238,7 @@ public class GoodActivity extends AppCompatActivity implements WifiP2pManager.Co
             }
         });
     }
+
     private void loading() {
         pro.setVisibility(View.VISIBLE);
     }
@@ -259,7 +277,7 @@ public class GoodActivity extends AppCompatActivity implements WifiP2pManager.Co
                 }
             } else if (WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION.equals(action)) {
                 // Respond to new connection or disconnections
-                NetworkInfo networkInfo =  intent
+                NetworkInfo networkInfo = intent
                         .getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
                 if (networkInfo.isConnected()) {
                     requestConnectionInfo(GoodActivity.this);
@@ -267,7 +285,7 @@ public class GoodActivity extends AppCompatActivity implements WifiP2pManager.Co
                     // info to find group owner IP
                 }
             } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
-                localDevice =  intent.getParcelableExtra(
+                localDevice = intent.getParcelableExtra(
                         WifiP2pManager.EXTRA_WIFI_P2P_DEVICE);
                 tvName.setText(localDevice.deviceName);
 
